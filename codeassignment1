@@ -1,0 +1,94 @@
+CREATE TABLE members (
+    member_id INT AUTO_INCREMENT PRIMARY KEY,
+    first_name VARCHAR(30) NOT NULL,
+    middle_initial CHAR(1),
+    last_name VARCHAR(30) NOT NULL,
+    age TINYINT UNSIGNED NOT NULL,
+    gender CHAR(1),
+    address_line1 VARCHAR(50) NOT NULL,
+    address_line2 VARCHAR(50),
+    city VARCHAR(50) NOT NULL,
+    state CHAR(2) NOT NULL,
+    zip_code VARCHAR(10) NOT NULL,
+    phone_number VARCHAR(15),
+    email VARCHAR(50) NOT NULL UNIQUE,
+    password_hashed VARCHAR(255) NOT NULL,
+    credit_card_token VARCHAR(100) NOT NULL,
+    fitness_interest CHAR(1) DEFAULT 'N',  -- Y = Yes, N = No
+    primary_goal TINYINT NOT NULL,         -- FK to lookup table
+    status CHAR(1) DEFAULT 'A',            -- A = Active, S = Suspended, I = Inactive
+    date_created DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    date_modified DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    date_accessed DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE primary_goals (
+    goal_id TINYINT PRIMARY KEY,
+    description VARCHAR(50) NOT NULL
+);
+
+INSERT INTO primary_goals (goal_id, description) VALUES
+(1, 'Weight Loss'),
+(2, 'Bodybuilding'),
+(3, 'Improve Endurance'),
+(4, 'General Fitness'),
+(5, 'Rehabilitation');
+
+<form action="register.php" method="POST">
+  First Name: <input type="text" name="first_name" required><br>
+  Last Name: <input type="text" name="last_name" required><br>
+  Age: <input type="number" name="age" min="13" max="120" required><br>
+  Gender: 
+    <select name="gender">
+      <option value="">Prefer not to say</option>
+      <option value="M">Male</option>
+      <option value="F">Female</option>
+      <option value="O">Other</option>
+    </select><br>
+  Address Line 1: <input type="text" name="address_line1" required><br>
+  Address Line 2: <input type="text" name="address_line2"><br>
+  City: <input type="text" name="city" required><br>
+  State: <input type="text" name="state" maxlength="2" required><br>
+  ZIP Code: <input type="text" name="zip_code" required><br>
+  Phone: <input type="text" name="phone_number"><br>
+  Email: <input type="email" name="email" required><br>
+  Password: <input type="password" name="password" required><br>
+  Credit Card Number: <input type="text" name="credit_card_number" required><br>
+
+  Fitness Interests:<br>
+  <input type="checkbox" name="fitness_interest" value="Y"> Interested in fitness classes<br>
+
+  Primary Fitness Goal:<br>
+  <input type="radio" name="primary_goal_code" value="1" required> Weight Loss<br>
+  <input type="radio" name="primary_goal_code" value="2"> Bodybuilding<br>
+  <input type="radio" name="primary_goal_code" value="3"> Improve Endurance<br>
+  <input type="radio" name="primary_goal_code" value="4"> General Fitness<br>
+  <input type="radio" name="primary_goal_code" value="5"> Rehabilitation<br>
+
+  <input type="submit" value="Register">
+</form>
+
+function tokenizeCard($cardNumber) {
+    // replace with actual encryption/tokenization in production
+    return hash('sha256', $cardNumber);
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = $_POST['email'];
+    $password = $_POST['password'];
+
+    $stmt = $db->prepare("SELECT password_hashed FROM members WHERE email = ?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $stmt->bind_result($hashed);
+    $stmt->fetch();
+
+    if (password_verify($password, $hashed)) {
+        echo "Login successful!";
+        // Set session variables, etc.
+    } else {
+        echo "Invalid credentials.";
+    }
+}
+
+
