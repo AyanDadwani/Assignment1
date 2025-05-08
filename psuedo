@@ -1,0 +1,63 @@
+<?php
+// Pseudocode
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // 1. Retrieve and sanitize user inputs from $_POST
+    $firstName    = trim($_POST['first_name']);    
+    $middleInit   = trim($_POST['middle_initial']);
+    $lastName     = trim($_POST['last_name']);
+    $age          = (int) $_POST['age'];           // convert age to integer
+    $gender       = $_POST['gender'];              
+    $addr1        = trim($_POST['address_line1']);
+    $addr2        = trim($_POST['address_line2']);
+    $city         = trim($_POST['city']);
+    $state        = $_POST['state'];               // 2-letter state code
+    $zip          = $_POST['zip_code'];
+    $phone        = preg_replace("/[^0-9]/", "", $_POST['phone_number']); 
+    $email        = trim($_POST['email']);
+    $password     = $_POST['password'];            
+    $ccNumber     = $_POST['credit_card_number'];  
+
+    // 2. Validate required fields
+    if (empty($firstName) || empty($lastName) || empty($email) || empty($password)) {
+        // Handle missing required field (e.g., return error response or message)
+        exit("Missing required fields.");
+    }
+
+    // 3. Securely handle sensitive data
+    $passwordHashed = password_hash($password, PASSWORD_DEFAULT);  // hashed password:contentReference[oaicite:7]{index=7}
+    
+    $ccToken = tokenizeCard($ccNumber); 
+    // Alternatively: $ccToken = hash('SHA256', $ccNumber);  (one-way hash if tokenization not available)
+    $ccLast4 = substr($ccNumber, -4);
+
+    // 4. Prepare SQL INSERT statement with placeholders (to prevent SQL injection)
+    $sql = "INSERT INTO members 
+            (first_name, middle_initial, last_name, age, gender, address_line1, address_line2, city, state, zip_code, phone_number, email, password_hashed, credit_card_token, fitness_interest, primary_goal, status, date_created, date_modified, date_accessed)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW(), NOW())";
+    $stmt = $db->prepare($sql);  // prepare the SQL statement
+
+    // 5. Bind parameters to the SQL statement (matching the placeholders)
+    $stmt->bind_param("sssisssssssssssii", 
+        $firstName, $middleInit, $lastName, $age, $gender, 
+        $addr1, $addr2, $city, $state, $zip, $phone, $email, 
+        $passwordHashed, $ccToken, 
+        isset($_POST['fitness_interest']) ? 'Y' : 'N',  // checkbox: 'Y' if checked, else 'N'
+        (int) $_POST['primary_goal_code'],             // radio selection code (integer)
+        $status = 'A'                                  // status code default 'A' for Active
+    );
+
+    $stmt->execute();
+
+    if ($stmt->affected_rows > 0) {
+        echo "Membership record created successfully.";
+    } else {
+        echo "Error: could not insert record.";
+    }
+
+    $stmt->close();
+    $db->close();
+} else {
+    exit("No form submission detected.");
+}
+?>
